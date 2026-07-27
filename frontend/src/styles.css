@@ -78,6 +78,20 @@ body {
   color: #8f1f1f;
 }
 
+.success {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  border: 1px solid #2f855a;
+  border-radius: 4px;
+  background: #e6f6ec;
+  color: #1c4532;
+}
+
+.field-error {
+  color: #8f1f1f;
+  font-size: 0.85rem;
+}
+
 .greeting-form {
   display: grid;
   gap: 0.5rem;

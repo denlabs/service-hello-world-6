@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { GreetingsTable } from '../components/GreetingsTable';
 import { Pagination } from '../components/Pagination';
 import { PAGE_SIZE, fetchGreetings, type GreetingPage } from '../api/greetings';
@@ -11,6 +11,8 @@ const EMPTY_PAGE: GreetingPage = {
 
 /** Homepage listing of stored greetings with pagination and an Add New action. */
 export function GreetingsListPage() {
+  const location = useLocation();
+  const createdName = (location.state as { createdName?: string } | null)?.createdName;
   const [pageNumber, setPageNumber] = useState(0);
   const [data, setData] = useState<GreetingPage>(EMPTY_PAGE);
   const [loading, setLoading] = useState(true);
@@ -43,6 +45,12 @@ export function GreetingsListPage() {
           Add New
         </Link>
       </header>
+
+      {createdName && (
+        <p role="status" className="success">
+          Greeting created for {createdName}.
+        </p>
+      )}
 
       {error && (
         <p role="alert" className="error">

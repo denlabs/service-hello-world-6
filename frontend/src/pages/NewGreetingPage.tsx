@@ -1,33 +1,68 @@
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createGreeting } from '../api/greetings';
 
-/** Greeting creation form opened by the Add New action. */
+interface FieldErrors {
+  firstName?: string;
+  lastName?: string;
+}
+
+/** Collapses runs of whitespace so the concatenated payload holds a single separator. */
+function normalise(value: string): string {
+  return value.trim().replace(/\s+/g, ' ');
+}
+
+/** Builds the backend `name` payload from the two form inputs. */
+export function buildName(firstName: string, lastName: string): string {
+  return normalise(`${normalise(firstName)} ${normalise(lastName)}`);
+}
+
+function validate(firstName: string, lastName: string): FieldErrors {
+  const errors: FieldErrors = {};
+  if (!normalise(firstName)) {
+    errors.firstName = 'Enter a first name.';
+  }
+  if (!normalise(lastName)) {
+    errors.lastName = 'Enter a last name.';
+  }
+  return errors;
+}
+
+/** Greeting creation form opened by the Add New action (FSH-199). */
 export function NewGreetingPage() {
   const navigate = useNavigate();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [error, setError] = useState<string | null>(null);
+  const inFlight = useRef(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setError(null);
-
-    const name = `${firstName.trim()} ${lastName.trim()}`.trim();
-    if (!name) {
-      setError('Enter a first name and a last name.');
+    if (inFlight.current) {
       return;
     }
 
+    setError(null);
+
+    const errors = validate(firstName, lastName);
+    setFieldErrors(errors);
+    if (errors.firstName || errors.lastName) {
+      setError([errors.firstName, errors.lastName].filter(Boolean).join(' '));
+      return;
+    }
+
+    const name = buildName(firstName, lastName);
+    inFlight.current = true;
     setSubmitting(true);
     try {
       await createGreeting({ name });
-      navigate('/', { replace: true });
+      navigate('/', { replace: true, state: { createdName: name } });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create greeting.');
-    } finally {
+      inFlight.current = false;
       setSubmitting(false);
+      setError(err instanceof Error ? err.message : 'Failed to create greeting.');
     }
   }
 
@@ -48,23 +83,44 @@ export function NewGreetingPage() {
         <input
           id="firstName"
           name="firstName"
+          autoComplete="given-name"
           value={firstName}
+          aria-invalid={Boolean(fieldErrors.firstName)}
+          aria-describedby={fieldErrors.firstName ? 'firstName-error' : undefined}
           onChange={(event) => setFirstName(event.target.value)}
         />
+        {fieldErrors.firstName && (
+          <span id="firstName-error" className="field-error">
+            {fieldErrors.firstName}
+          </span>
+        )}
 
         <label htmlFor="lastName">Last name</label>
         <input
           id="lastName"
           name="lastName"
+          autoComplete="family-name"
           value={lastName}
+          aria-invalid={Boolean(fieldErrors.lastName)}
+          aria-describedby={fieldErrors.lastName ? 'lastName-error' : undefined}
           onChange={(event) => setLastName(event.target.value)}
         />
+        {fieldErrors.lastName && (
+          <span id="lastName-error" className="field-error">
+            {fieldErrors.lastName}
+          </span>
+        )}
 
         <div className="form-actions">
           <button type="submit" className="button primary" disabled={submitting}>
             {submitting ? 'Saving…' : 'Save'}
           </button>
-          <button type="button" className="button" onClick={() => navigate('/')}>
+          <button
+            type="button"
+            className="button"
+            disabled={submitting}
+            onClick={() => navigate('/')}
+          >
             Cancel
           </button>
         </div>
