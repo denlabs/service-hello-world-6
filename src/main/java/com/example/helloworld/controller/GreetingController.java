@@ -20,8 +20,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class GreetingController {
 
+    /** Default number of greetings returned per page when {@code size} is not supplied. */
+    static final int DEFAULT_PAGE_SIZE = 20;
+
     private final GreetingService greetingService;
 
+    /** Creates a greeting from the submitted name and returns the persisted representation. */
     @PostMapping(path = "/greeting", consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
@@ -29,8 +33,9 @@ public class GreetingController {
         return greetingService.createGreeting(request);
     }
 
+    /** Returns stored greetings ordered by date descending, paginated with {@code page}/{@code size}. */
     @GetMapping(path = "/greetings", produces = MediaType.APPLICATION_JSON_VALUE)
-    public Page<GreetingResponse> getGreetings(@PageableDefault(size = 20) Pageable pageable) {
+    public Page<GreetingResponse> getGreetings(@PageableDefault(size = DEFAULT_PAGE_SIZE) Pageable pageable) {
         return greetingService.getGreetings(pageable);
     }
 }

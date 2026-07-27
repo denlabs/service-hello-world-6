@@ -20,7 +20,17 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class GreetingServiceImpl implements GreetingService {
 
-    private static final String GREETING_TEMPLATE = "Hello, %s!";
+    /**
+     * Default greeting template. The single {@code %s} placeholder is replaced with the
+     * submitted name, so a request for {@code "Alice"} produces {@code "Hello, Alice!"}.
+     */
+    static final String GREETING_TEMPLATE = "Hello, %s!";
+
+    /** Property name used to sort stored greetings; see {@link #GREETING_SORT}. */
+    private static final String DATE_PROPERTY = "date";
+
+    /** Greetings are always returned newest first, regardless of any client supplied sort. */
+    private static final Sort GREETING_SORT = Sort.by(Sort.Direction.DESC, DATE_PROPERTY);
 
     private final GreetingRepository greetingRepository;
     private final Clock clock;
@@ -44,7 +54,7 @@ public class GreetingServiceImpl implements GreetingService {
         Pageable sorted = PageRequest.of(
                 pageable.getPageNumber(),
                 pageable.getPageSize(),
-                Sort.by(Sort.Direction.DESC, "date"));
+                GREETING_SORT);
 
         return greetingRepository.findAll(sorted).map(GreetingResponse::from);
     }

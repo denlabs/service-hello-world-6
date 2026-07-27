@@ -97,4 +97,32 @@ class GreetingControllerTest {
                 .andExpect(jsonPath("$.page.size", is(2)))
                 .andExpect(jsonPath("$.page.totalElements", is(3)));
     }
+
+    @Test
+    void getGreetingsDefaultsToTwentyRowsPerPage() throws Exception {
+        Instant now = Instant.now();
+        for (int i = 0; i < 25; i++) {
+            greetingRepository.save(Greeting.builder()
+                    .id(UUID.randomUUID())
+                    .name("Name" + i)
+                    .date(now.minus(i, ChronoUnit.MINUTES))
+                    .response("Hello, Name" + i + "!")
+                    .build());
+        }
+
+        mockMvc.perform(get("/greetings"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()", is(20)))
+                .andExpect(jsonPath("$.content[0].name", is("Name0")))
+                .andExpect(jsonPath("$.content[19].name", is("Name19")))
+                .andExpect(jsonPath("$.page.size", is(20)))
+                .andExpect(jsonPath("$.page.totalElements", is(25)))
+                .andExpect(jsonPath("$.page.totalPages", is(2)));
+
+        mockMvc.perform(get("/greetings").param("page", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()", is(5)))
+                .andExpect(jsonPath("$.content[0].name", is("Name20")))
+                .andExpect(jsonPath("$.content[4].name", is("Name24")));
+    }
 }
