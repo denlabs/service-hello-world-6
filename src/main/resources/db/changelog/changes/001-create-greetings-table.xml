@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <changeSet id="001-create-greetings-table" author="fsh-194">
+        <createTable tableName="GREETINGS">
+            <column name="ID" type="UUID">
+                <constraints primaryKey="true" primaryKeyName="PK_GREETINGS" nullable="false"/>
+            </column>
+            <column name="NAME" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="DATE" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="RESPONSE" type="VARCHAR(512)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="002-create-greetings-date-index" author="fsh-194">
+        <createIndex indexName="IDX_GREETINGS_DATE" tableName="GREETINGS">
+            <column name="DATE" descending="true"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>
