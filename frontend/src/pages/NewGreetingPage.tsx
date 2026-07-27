@@ -1,4 +1,4 @@
-import { useRef, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createGreeting } from '../api/greetings';
 
@@ -28,7 +28,7 @@ function validate(firstName: string, lastName: string): FieldErrors {
   return errors;
 }
 
-/** Greeting creation form opened by the Add New action (FSH-199). */
+/** Greeting creation form opened by the Add New action (FSH-199, FSH-200). */
 export function NewGreetingPage() {
   const navigate = useNavigate();
   const [firstName, setFirstName] = useState('');
@@ -36,7 +36,16 @@ export function NewGreetingPage() {
   const [submitting, setSubmitting] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [error, setError] = useState<string | null>(null);
+  const [submissionFailed, setSubmissionFailed] = useState(false);
   const inFlight = useRef(false);
+  const errorRef = useRef<HTMLDivElement | null>(null);
+
+  // Keep the failure visible where the user is working by moving focus onto the message.
+  useEffect(() => {
+    if (error) {
+      errorRef.current?.focus();
+    }
+  }, [error]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -45,6 +54,7 @@ export function NewGreetingPage() {
     }
 
     setError(null);
+    setSubmissionFailed(false);
 
     const errors = validate(firstName, lastName);
     setFieldErrors(errors);
@@ -62,6 +72,7 @@ export function NewGreetingPage() {
     } catch (err) {
       inFlight.current = false;
       setSubmitting(false);
+      setSubmissionFailed(true);
       setError(err instanceof Error ? err.message : 'Failed to create greeting.');
     }
   }
@@ -73,9 +84,20 @@ export function NewGreetingPage() {
       </header>
 
       {error && (
-        <p role="alert" className="error">
-          {error}
-        </p>
+        <div
+          ref={errorRef}
+          role="alert"
+          aria-live="assertive"
+          tabIndex={-1}
+          className="error"
+        >
+          <p className="error-message">{error}</p>
+          {submissionFailed && (
+            <p className="error-hint">
+              Your details were kept. Check them and select Save to try again.
+            </p>
+          )}
+        </div>
       )}
 
       <form className="greeting-form" onSubmit={handleSubmit} noValidate>

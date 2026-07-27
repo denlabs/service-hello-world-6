@@ -78,6 +78,15 @@ body {
   color: #8f1f1f;
 }
 
+.error p {
+  margin: 0;
+}
+
+.error-hint {
+  margin-top: 0.35rem;
+  font-size: 0.85rem;
+}
+
 .success {
   margin-top: 1rem;
   padding: 0.75rem;

@@ -34,6 +34,79 @@ export class ApiError extends Error {
   }
 }
 
+/** Reads an error response body without letting a malformed payload mask the failure. */
+async function readErrorBody(res: Response): Promise<unknown> {
+  try {
+    if (typeof res.json === 'function') {
+      return await res.json();
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+function collectFieldMessages(errors: unknown): string[] {
+  if (Array.isArray(errors)) {
+    return errors
+      .map((entry) => {
+        if (typeof entry === 'string') {
+          return entry;
+        }
+        const item = (entry ?? {}) as Record<string, unknown>;
+        const message = item.defaultMessage ?? item.message ?? item.detail;
+        if (typeof message !== 'string' || !message.trim()) {
+          return '';
+        }
+        return typeof item.field === 'string' && item.field ? `${item.field}: ${message}` : message;
+      })
+      .filter((message): message is string => Boolean(message));
+  }
+
+  if (errors && typeof errors === 'object') {
+    return Object.entries(errors as Record<string, unknown>)
+      .filter(([, message]) => typeof message === 'string' && message.trim())
+      .map(([field, message]) => `${field}: ${String(message)}`);
+  }
+
+  return [];
+}
+
+/**
+ * Pulls a human-readable explanation out of a backend error payload. Supports Spring's
+ * `ProblemDetail` (`detail`/`title`), the default error attributes (`message`/`error`) and
+ * bean-validation field error collections.
+ */
+function serverMessage(raw: unknown): string | null {
+  if (typeof raw === 'string') {
+    return raw.trim() || null;
+  }
+  if (!raw || typeof raw !== 'object') {
+    return null;
+  }
+
+  const body = raw as Record<string, unknown>;
+  const fieldMessages = collectFieldMessages(body.errors ?? body.fieldErrors);
+  if (fieldMessages.length > 0) {
+    return fieldMessages.join(' ');
+  }
+
+  for (const key of ['detail', 'message', 'error', 'title'] as const) {
+    const value = body[key];
+    if (typeof value === 'string' && value.trim() && value.trim() !== 'No message available') {
+      return value.trim();
+    }
+  }
+
+  return null;
+}
+
+/** Builds `<prefix>: <server detail> (HTTP <status>).` falling back to `<prefix> (HTTP <status>).` */
+function failureMessage(prefix: string, status: number, detail: string | null): string {
+  const cleaned = detail ? detail.replace(/\s+/g, ' ').trim().replace(/[.\s]+$/, '') : '';
+  return cleaned ? `${prefix}: ${cleaned} (HTTP ${status}).` : `${prefix} (HTTP ${status}).`;
+}
+
 function normalisePage(raw: unknown, requestedPage: number): GreetingPage {
   const body = (raw ?? {}) as Partial<GreetingPage>;
   const content = Array.isArray(body.content) ? body.content : [];
@@ -59,10 +132,17 @@ export async function fetchGreetings(page = 0, size = PAGE_SIZE): Promise<Greeti
   }
 
   if (!res.ok) {
-    throw new ApiError(`Failed to load greetings (HTTP ${res.status}).`, res.status);
+    throw new ApiError(
+      failureMessage('Failed to load greetings', res.status, serverMessage(await readErrorBody(res))),
+      res.status,
+    );
   }
 
-  return normalisePage(await res.json(), page);
+  try {
+    return normalisePage(await res.json(), page);
+  } catch {
+    throw new ApiError('The greetings service returned an unreadable response.', res.status);
+  }
 }
 
 /** Creates a greeting from the supplied name payload. */
@@ -79,8 +159,20 @@ export async function createGreeting(payload: CreateGreetingPayload): Promise<Gr
   }
 
   if (!res.ok) {
-    throw new ApiError(`Failed to create greeting (HTTP ${res.status}).`, res.status);
+    throw new ApiError(
+      failureMessage(
+        'Failed to create greeting',
+        res.status,
+        serverMessage(await readErrorBody(res)),
+      ),
+      res.status,
+    );
   }
 
-  return (await res.json()) as Greeting;
+  try {
+    return (await res.json()) as Greeting;
+  } catch {
+    // The greeting was accepted; the refreshed listing is the authoritative view.
+    return { id: '', name: payload.name, date: '', response: '' };
+  }
 }
