@@ -90,4 +90,33 @@ class GreetingServiceImplTest {
                 .containsExactly("Newest", "Oldest");
         assertThat(page.getContent().getFirst().response()).isEqualTo("Hello, Newest!");
     }
+
+    @Test
+    void getGreetingsOverridesClientSuppliedSortWithDateDescending() {
+        Clock clock = Clock.fixed(FIXED_INSTANT, ZoneOffset.UTC);
+        GreetingServiceImpl service = new GreetingServiceImpl(greetingRepository, clock);
+
+        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+        when(greetingRepository.findAll(pageableCaptor.capture()))
+                .thenReturn(new PageImpl<>(List.of()));
+
+        service.getGreetings(PageRequest.of(0, 5, Sort.by(Sort.Direction.ASC, "name")));
+
+        assertThat(pageableCaptor.getValue().getSort())
+                .isEqualTo(Sort.by(Sort.Direction.DESC, "date"));
+    }
+
+    @Test
+    void createGreetingMapsEveryResponseFieldFromThePersistedGreeting() {
+        Clock clock = Clock.fixed(FIXED_INSTANT, ZoneOffset.UTC);
+        GreetingServiceImpl service = new GreetingServiceImpl(greetingRepository, clock);
+        when(greetingRepository.save(any(Greeting.class))).thenAnswer(i -> i.getArgument(0));
+
+        GreetingResponse response = service.createGreeting(new GreetingRequest("Dave"));
+
+        assertThat(response.id()).isNotNull();
+        assertThat(response.name()).isEqualTo("Dave");
+        assertThat(response.date()).isEqualTo(FIXED_INSTANT);
+        assertThat(response.response()).isEqualTo("Hello, Dave!");
+    }
 }

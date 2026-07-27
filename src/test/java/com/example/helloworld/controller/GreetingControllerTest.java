@@ -1,13 +1,16 @@
 package com.example.helloworld.controller;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.example.helloworld.entity.Greeting;
 import com.example.helloworld.repository.GreetingRepository;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -57,6 +60,27 @@ class GreetingControllerTest {
         org.junit.jupiter.api.Assertions.assertEquals("Alice", stored.getName());
         org.junit.jupiter.api.Assertions.assertEquals("Hello, Alice!", stored.getResponse());
         org.junit.jupiter.api.Assertions.assertNotNull(stored.getDate());
+    }
+
+    @Test
+    void postGreetingResponseMatchesDocumentedContract() throws Exception {
+        String payload = objectMapper.writeValueAsString(Map.of("name", "Alice"));
+
+        String body = mockMvc.perform(post("/greeting")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isCreated())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode json = objectMapper.readTree(body);
+        assertThat(json.fieldNames()).toIterable()
+                .containsExactlyInAnyOrder("id", "name", "date", "response");
+        assertThat(UUID.fromString(json.get("id").asText())).isNotNull();
+        assertThat(Instant.parse(json.get("date").asText())).isNotNull();
+        assertThat(json.get("response").asText()).isEqualTo("Hello, Alice!");
     }
 
     @Test
