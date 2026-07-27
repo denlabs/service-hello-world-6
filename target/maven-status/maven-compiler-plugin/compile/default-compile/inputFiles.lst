@@ -1,0 +1,10 @@
+/Users/Denis.Labelle/dev/tenyks/projects/service-hello-world-6/src/main/java/com/example/helloworld/HelloWorldApplication.java
+/Users/Denis.Labelle/dev/tenyks/projects/service-hello-world-6/src/main/java/com/example/helloworld/config/ClockConfig.java
+/Users/Denis.Labelle/dev/tenyks/projects/service-hello-world-6/src/main/java/com/example/helloworld/config/WebConfig.java
+/Users/Denis.Labelle/dev/tenyks/projects/service-hello-world-6/src/main/java/com/example/helloworld/controller/GreetingController.java
+/Users/Denis.Labelle/dev/tenyks/projects/service-hello-world-6/src/main/java/com/example/helloworld/dto/GreetingRequest.java
+/Users/Denis.Labelle/dev/tenyks/projects/service-hello-world-6/src/main/java/com/example/helloworld/dto/GreetingResponse.java
+/Users/Denis.Labelle/dev/tenyks/projects/service-hello-world-6/src/main/java/com/example/helloworld/entity/Greeting.java
+/Users/Denis.Labelle/dev/tenyks/projects/service-hello-world-6/src/main/java/com/example/helloworld/repository/GreetingRepository.java
+/Users/Denis.Labelle/dev/tenyks/projects/service-hello-world-6/src/main/java/com/example/helloworld/service/GreetingService.java
+/Users/Denis.Labelle/dev/tenyks/projects/service-hello-world-6/src/main/java/com/example/helloworld/service/impl/GreetingServiceImpl.java
